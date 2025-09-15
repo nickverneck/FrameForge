@@ -2,6 +2,7 @@ from typing import Tuple, Optional, Dict, Any
 import os
 import asyncio
 
+import logging
 from .base import ImageEditor
 from ..config import Settings
 
@@ -31,18 +32,21 @@ class GoogleNanoBananaEditor(ImageEditor):
         # Support both GOOGLE_API_KEY and GEMINI_API_KEY envs
         self.api_key = (
             settings.google_api_key
+            or settings.gemini_api_key
             or os.getenv("GOOGLE_API_KEY")
             or os.getenv("GEMINI_API_KEY")
         )
         self.model_id = settings.google_model_id or os.getenv(
             "GOOGLE_MODEL_ID", "gemini-2.5-flash-image-preview"
         )
+        self._log = logging.getLogger("frameforge.google")
 
     async def edit_image(
         self, image_bytes: bytes, prompt: str, options: Dict[str, Any]
     ) -> Tuple[bytes, Optional[str]]:
         if not self.api_key:
             # Dev fallback: no API key, return original
+            self._log.warning("Google provider fallback: no API key found; returning original image.")
             return image_bytes, None
 
         # Run the synchronous google-genai client in a thread

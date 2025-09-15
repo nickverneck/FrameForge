@@ -24,11 +24,13 @@ Frontend – Run (Vite)
 
 Provider Notes
 - Google (nano-banana): `backend/app/services/google_nano_banana.py` contains a stub. Replace the endpoint and payload with the official Google Images Edit API and set `GOOGLE_API_KEY` + `GOOGLE_MODEL_ID` in `backend/.env`.
-- Qwen Edit: `backend/app/services/qwen_editor.py` – not implemented yet.
-- Kontext Pro: `backend/app/services/kontext_pro_editor.py` – not implemented yet.
+- FAL.ai: `backend/app/services/fal_editor.py` is reusable for multiple models. Set `FAL_KEY` and pass provider strings like:
+  - `fal:fal-ai/nano-banana/edit`
+  - `fal:fal-ai/qwen-image-edit`
+  - `fal:fal-ai/bytedance/seedream/v4/edit`
+  - `fal:fal-ai/flux-kontext/dev`
 
 API
 - POST `/api/edit` (multipart): fields `image` (file), `prompt` (string, optional), `provider` (string: `google|qwen|kontext`, optional; defaults to `google`). Returns edited image bytes.
 - GET `/providers`: discover providers.
 - GET `/health`: health check.
-

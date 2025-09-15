@@ -10,9 +10,10 @@ Endpoints
 - GET /providers: lists available providers.
 
 Env Vars (.env)
-- GOOGLE_API_KEY=your_key_here (or GEMINI_API_KEY)
+- GOOGLE_API_KEY=your_key_here
+- GEMINI_API_KEY=your_key_here (either works)
 - GOOGLE_MODEL_ID=gemini-2.5-flash-image-preview (or your preferred model)
-- ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+- ALLOWED_ORIGINS=["http://localhost:5173","http://127.0.0.1:5173"]  <- JSON array
 
 Run (with uv)
 1) Install uv (https://github.com/astral-sh/uv). Then from `backend/`:
@@ -22,4 +23,5 @@ Run (with uv)
 
 Notes
 - The Google provider now uses the `google-genai` SDK with streaming to return inline image data. Set `GOOGLE_API_KEY` or `GEMINI_API_KEY` and an image-capable model id.
-- Qwen Edit and Kontext Pro are left as placeholders; implement their API calls in `app/services/qwen_editor.py` and `app/services/kontext_pro_editor.py`.
+- `ALLOWED_ORIGINS` must be valid JSON if set in `.env` because `pydantic-settings` parses list fields from JSON.
+- FAL support: Set `FAL_KEY` and use provider values like `fal:fal-ai/nano-banana/edit`, `fal:fal-ai/qwen-image-edit`, `fal:fal-ai/bytedance/seedream/v4/edit`, `fal:fal-ai/flux-kontext/dev`. See `app/services/fal_editor.py`.

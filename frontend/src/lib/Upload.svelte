@@ -2,6 +2,7 @@
   import { editImage } from './api.js'
 
   let file = null;
+  let fileInput; // ref for the hidden input bound via bind:this
   let previewUrl = '';
   let resultUrl = '';
   let prompt = 'Stage this room with minimalist modern furniture in neutral tones.';
@@ -57,9 +58,15 @@
     <label>
       Provider
       <select bind:value={provider}>
-        <option value="google">Google (nano-banana)</option>
-        <option value="qwen">Qwen Edit (placeholder)</option>
-        <option value="kontext">Kontext Pro (placeholder)</option>
+        <optgroup label="Google">
+          <option value="google">Nano-banana (Google)</option>
+        </optgroup>
+        <optgroup label="FAL.ai">
+          <option value="fal:fal-ai/nano-banana/edit">Nano-banana (FAL)</option>
+          <option value="fal:fal-ai/qwen-image-edit">Qwen Image Edit (FAL)</option>
+          <option value="fal:fal-ai/bytedance/seedream/v4/edit">Seedream v4 Edit (FAL)</option>
+          <option value="fal:fal-ai/flux-kontext/dev">Flux Kontext Dev (FAL)</option>
+        </optgroup>
       </select>
     </label>
     <button class="primary" on:click={onSubmit} disabled={loading}>
@@ -96,4 +103,3 @@
   .download { display:inline-block; margin-top:8px; color:#eaeaea; text-decoration: underline; }
   @media (max-width: 640px) { .drop { min-height: 140px; } }
 </style>
-
