@@ -1,0 +1,15 @@
+[project]
+name = "frameforge-backend"
+version = "0.1.0"
+description = "Image editing backend for room staging using FastAPI."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.112",
+  "uvicorn>=0.30",
+  "python-multipart>=0.0.9",
+  "httpx>=0.27",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4"
+]
+
