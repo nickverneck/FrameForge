@@ -10,8 +10,8 @@ Endpoints
 - GET /providers: lists available providers.
 
 Env Vars (.env)
-- GOOGLE_API_KEY=your_key_here
-- GOOGLE_MODEL_ID=gemini-flash-image-edit (placeholder; use your actual Google model id)
+- GOOGLE_API_KEY=your_key_here (or GEMINI_API_KEY)
+- GOOGLE_MODEL_ID=gemini-2.5-flash-image-preview (or your preferred model)
 - ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
 Run (with uv)
@@ -21,6 +21,5 @@ Run (with uv)
    uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 Notes
-- The Google provider call is a stub with placeholders for the correct endpoint and payload shape. Fill in the TODOs with the Google Generative AI Images Edit API you use (Vertex AI or Generative Language API) and model id.
+- The Google provider now uses the `google-genai` SDK with streaming to return inline image data. Set `GOOGLE_API_KEY` or `GEMINI_API_KEY` and an image-capable model id.
 - Qwen Edit and Kontext Pro are left as placeholders; implement their API calls in `app/services/qwen_editor.py` and `app/services/kontext_pro_editor.py`.
-

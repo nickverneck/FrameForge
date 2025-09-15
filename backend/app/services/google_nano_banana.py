@@ -1,66 +1,103 @@
 from typing import Tuple, Optional, Dict, Any
 import os
-
-import httpx
+import asyncio
 
 from .base import ImageEditor
 from ..config import Settings
 
 
-class GoogleNanoBananaEditor(ImageEditor):
-    """Google Gemini Flash image editing (aka nano-banana placeholder).
+def _guess_mime(data: bytes) -> str:
+    if not data:
+        return "application/octet-stream"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+        return "image/gif"
+    if len(data) > 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    return "application/octet-stream"
 
-    This is a stub. Fill in the endpoint, request payload, and response parsing
-    according to the Google API you are using (Vertex AI Images Edit or
-    Generative AI Images Edit). The code falls back to returning the original
-    image if no API key is configured, to simplify local dev.
+
+class GoogleNanoBananaEditor(ImageEditor):
+    """Google Gemini Flash image editing (aka nano-banana) via google-genai SDK.
+
+    Uses streaming generation to receive an edited image as inline_data.
+    If the SDK or API key are not present, returns the original image for dev.
     """
 
     def __init__(self, settings: Settings):
-        self.api_key = settings.google_api_key or os.getenv("GOOGLE_API_KEY")
-        self.model_id = settings.google_model_id or os.getenv("GOOGLE_MODEL_ID", "gemini-flash-image-edit")
+        # Support both GOOGLE_API_KEY and GEMINI_API_KEY envs
+        self.api_key = (
+            settings.google_api_key
+            or os.getenv("GOOGLE_API_KEY")
+            or os.getenv("GEMINI_API_KEY")
+        )
+        self.model_id = settings.google_model_id or os.getenv(
+            "GOOGLE_MODEL_ID", "gemini-2.5-flash-image-preview"
+        )
 
-    async def edit_image(self, image_bytes: bytes, prompt: str, options: Dict[str, Any]) -> Tuple[bytes, Optional[str]]:
+    async def edit_image(
+        self, image_bytes: bytes, prompt: str, options: Dict[str, Any]
+    ) -> Tuple[bytes, Optional[str]]:
         if not self.api_key:
-            # Dev fallback: return original image bytes
+            # Dev fallback: no API key, return original
             return image_bytes, None
 
-        # TODO: Replace with the correct Google Images Edit API endpoint
-        # Example placeholder URL (not real):
-        # endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_id}:editImage"
-        endpoint = "https://example-google-images-edit-endpoint/placeholder"
+        # Run the synchronous google-genai client in a thread
+        def _run_sync() -> Tuple[bytes, Optional[str]]:
+            try:
+                from google import genai
+                from google.genai import types
+            except Exception as e:  # ImportError or others
+                raise RuntimeError(
+                    "google-genai is not installed. Add it to dependencies and install."
+                ) from e
 
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-        }
+            client = genai.Client(api_key=self.api_key)
 
-        # The exact request format depends on the API. Typical patterns include
-        # multipart form or JSON with base64 image. Here we send multipart as a placeholder.
-        data = {
-            "prompt": prompt,
-            "model": self.model_id,
-        }
+            # Prepare contents: include the input image and the instruction text
+            input_mime = _guess_mime(image_bytes)
+            contents = [
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part.from_bytes(data=image_bytes, mime_type=input_mime),
+                        types.Part.from_text(text=prompt or ""),
+                    ],
+                )
+            ]
 
-        files = {
-            "image": ("input.jpg", image_bytes, "application/octet-stream"),
-        }
+            config = types.GenerateContentConfig(
+                response_modalities=["IMAGE"],
+            )
 
-        # Note: In this repo we do not actually perform the request, as the endpoint is a placeholder.
-        # If you have the correct endpoint and payload, uncomment this block.
-        try:
-            async with httpx.AsyncClient(timeout=60) as client:
-                # resp = await client.post(endpoint, headers=headers, data=data, files=files, params={"key": self.api_key})
-                # resp.raise_for_status()
-                # Parse response and extract image bytes + mime type
-                # For example, if base64 in JSON:
-                # b64 = resp.json()["data"]["image_base64"]
-                # out_bytes = base64.b64decode(b64)
-                # return out_bytes, "image/png"
-                pass
-        except httpx.HTTPError as e:
-            # On error, surface a helpful message
-            raise RuntimeError(f"Google Images Edit API error: {e}")
+            last_image_bytes: Optional[bytes] = None
+            last_image_mime: Optional[str] = None
 
-        # Since this is a placeholder, fall back to original image
-        return image_bytes, None
+            for chunk in client.models.generate_content_stream(
+                model=self.model_id, contents=contents, config=config
+            ):
+                # Each chunk may contain text or inline image data
+                if (
+                    not getattr(chunk, "candidates", None)
+                    or not chunk.candidates
+                    or not getattr(chunk.candidates[0], "content", None)
+                    or not getattr(chunk.candidates[0].content, "parts", None)
+                ):
+                    continue
 
+                parts = chunk.candidates[0].content.parts
+                for p in parts:
+                    inline = getattr(p, "inline_data", None)
+                    if inline and getattr(inline, "data", None):
+                        last_image_bytes = inline.data
+                        last_image_mime = getattr(inline, "mime_type", None)
+
+            if last_image_bytes is None:
+                raise RuntimeError("No edited image returned from Gemini stream.")
+
+            return last_image_bytes, last_image_mime
+
+        return await asyncio.to_thread(_run_sync)
