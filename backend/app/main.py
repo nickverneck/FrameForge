@@ -22,12 +22,12 @@ app.add_middleware(
 )
 
 
-@app.get("/health")
+@app.get("/api/health")
 def health():
     return {"status": "ok"}
 
 
-@app.get("/providers")
+@app.get("/api/providers")
 def providers():
     return {"default": "google", "available": list_providers()}
 
