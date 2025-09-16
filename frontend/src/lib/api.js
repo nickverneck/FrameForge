@@ -1,4 +1,4 @@
-export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+//export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
 
 export async function editImage({ file, prompt, provider }) {
   const fd = new FormData();
@@ -6,7 +6,7 @@ export async function editImage({ file, prompt, provider }) {
   if (prompt) fd.append('prompt', prompt);
   if (provider) fd.append('provider', provider);
 
-  const res = await fetch(`${API_BASE}/api/edit`, {
+  const res = await fetch(`/api/edit`, {
     method: 'POST',
     body: fd
   });
