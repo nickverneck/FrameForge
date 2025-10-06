@@ -53,14 +53,23 @@ class FalImageEditor(ImageEditor):
                 mime = "image/gif"
             data_uri = f"data:{mime};base64,{base64.b64encode(image_bytes).decode('ascii')}"
 
-            args = {
-                "prompt": prompt,
-                "image_urls": [data_uri],
-                "output_format": "png",
-                # When supported, FAL returns data URIs directly if sync_mode is True
-                # This may not be honored by all models; we still handle HTTP URLs below.
-                "sync_mode": True,
-            }
+            # Specific models have different arg names
+            if "flux-kontext" in self.model_path or "qwen-image-edit" in self.model_path:
+                args = {
+                    "prompt": prompt,
+                    "image_url": data_uri,
+                    "output_format": "png",
+                    "sync_mode": True,
+                }
+            else:
+                args = {
+                    "prompt": prompt,
+                    "image_urls": [data_uri],
+                    "output_format": "png",
+                    # When supported, FAL returns data URIs directly if sync_mode is True
+                    # This may not be honored by all models; we still handle HTTP URLs below.
+                    "sync_mode": True,
+                }
 
             # Prefer subscribe() which returns the result when complete
             try:
