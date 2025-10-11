@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, List
 
 import os
 import base64
@@ -28,10 +28,10 @@ class FalImageEditor(ImageEditor):
         self.api_key = (settings.fal_key if settings else None) or os.getenv("FAL_KEY")
         self._log = logging.getLogger("frameforge.fal")
 
-    async def edit_image(self, image_bytes: bytes, prompt: str, options: Dict[str, Any]) -> Tuple[bytes, Optional[str]]:
+    async def edit_image(self, image_bytes: List[bytes], prompt: str, options: Dict[str, Any]) -> Tuple[bytes, Optional[str]]:
         if not self.api_key:
             self._log.warning("FAL provider fallback: FAL_KEY missing; returning original image.")
-            return image_bytes, None
+            return image_bytes[0], None
 
         def _run_sync() -> Tuple[bytes, Optional[str]]:
             try:
@@ -43,28 +43,29 @@ class FalImageEditor(ImageEditor):
             if self.api_key and not os.getenv("FAL_KEY"):
                 os.environ["FAL_KEY"] = self.api_key
 
-            # Build a data URI for the input image so we don't need file upload API
-            mime = "image/jpeg"
-            if image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
-                mime = "image/png"
-            elif image_bytes.startswith(b"\xff\xd8\xff"):
+            data_uris = []
+            for img_bytes in image_bytes:
                 mime = "image/jpeg"
-            elif image_bytes.startswith(b"GIF87a") or image_bytes.startswith(b"GIF89a"):
-                mime = "image/gif"
-            data_uri = f"data:{mime};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+                if img_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+                    mime = "image/png"
+                elif img_bytes.startswith(b"\xff\xd8\xff"):
+                    mime = "image/jpeg"
+                elif img_bytes.startswith(b"GIF87a") or img_bytes.startswith(b"GIF89a"):
+                    mime = "image/gif"
+                data_uris.append(f"data:{mime};base64,{base64.b64encode(img_bytes).decode('ascii')}")
 
             # Specific models have different arg names
             if "flux-kontext" in self.model_path or "qwen-image-edit" in self.model_path:
                 args = {
                     "prompt": prompt,
-                    "image_url": data_uri,
+                    "image_url": data_uris[0],
                     "output_format": "png",
                     "sync_mode": True,
                 }
             else:
                 args = {
                     "prompt": prompt,
-                    "image_urls": [data_uri],
+                    "image_urls": data_uris,
                     "output_format": "png",
                     # When supported, FAL returns data URIs directly if sync_mode is True
                     # This may not be honored by all models; we still handle HTTP URLs below.
@@ -122,6 +123,6 @@ class FalImageEditor(ImageEditor):
                 except Exception as e:
                     self._log.warning(f"Failed to fetch FAL image URL: {e}")
 
-            return image_bytes, None
+            return image_bytes[0], None
 
         return await asyncio.to_thread(_run_sync)

@@ -18,12 +18,7 @@ class Settings(BaseSettings):
     # Default to a current image-capable Gemini model id used in the example
     google_model_id: str = "gemini-2.5-flash-image-preview"
 
-    allowed_origins: List[str] = [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ]
+    allowed_origins: List[str] = ["*"]
 
 
 @lru_cache()

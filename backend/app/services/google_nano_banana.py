@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, Dict, Any
+from typing import Tuple, Optional, Dict, Any, List
 import os
 import asyncio
 
@@ -42,12 +42,12 @@ class GoogleNanoBananaEditor(ImageEditor):
         self._log = logging.getLogger("frameforge.google")
 
     async def edit_image(
-        self, image_bytes: bytes, prompt: str, options: Dict[str, Any]
+        self, image_bytes: List[bytes], prompt: str, options: Dict[str, Any]
     ) -> Tuple[bytes, Optional[str]]:
         if not self.api_key:
             # Dev fallback: no API key, return original
             self._log.warning("Google provider fallback: no API key found; returning original image.")
-            return image_bytes, None
+            return image_bytes[0], None
 
         # Run the synchronous google-genai client in a thread
         def _run_sync() -> Tuple[bytes, Optional[str]]:
@@ -62,14 +62,17 @@ class GoogleNanoBananaEditor(ImageEditor):
             client = genai.Client(api_key=self.api_key)
 
             # Prepare contents: include the input image and the instruction text
-            input_mime = _guess_mime(image_bytes)
+            parts = []
+            for img_bytes in image_bytes:
+                input_mime = _guess_mime(img_bytes)
+                parts.append(types.Part.from_bytes(data=img_bytes, mime_type=input_mime))
+            
+            parts.append(types.Part.from_text(text=prompt or ""))
+
             contents = [
                 types.Content(
                     role="user",
-                    parts=[
-                        types.Part.from_bytes(data=image_bytes, mime_type=input_mime),
-                        types.Part.from_text(text=prompt or ""),
-                    ],
+                    parts=parts,
                 )
             ]
 
