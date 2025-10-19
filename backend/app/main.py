@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from typing import Optional, List
@@ -34,6 +34,7 @@ def providers():
 
 @app.post("/api/edit")
 async def edit_image(
+    request: Request,
     images: List[UploadFile] = File(..., description="Unfurnished room photos"),
     prompt: Optional[str] = Form(None, description="Prompt or style instructions"),
     provider: Optional[str] = Form(None, description="Provider: google|qwen|kontext"),
@@ -54,8 +55,19 @@ async def edit_image(
         )
 
     provider_name = provider or "google"
+    request_settings = settings
+    auth_header = request.headers.get("authorization")
+    if auth_header:
+        token = auth_header.strip()
+        for prefix in ("bearer ", "key "):
+            if token.lower().startswith(prefix):
+                token = token[len(prefix):].strip()
+                break
+        if token:
+            request_settings = settings.model_copy(update={"fal_key": token})
+
     logger.info(f"Editing image via provider='{provider_name}'")
-    editor = get_editor(provider_name=provider_name, settings=settings)
+    editor = get_editor(provider_name=provider_name, settings=request_settings)
 
     try:
         edited_bytes, mime = await editor.edit_image(raw_images, prompt=prompt, options={})

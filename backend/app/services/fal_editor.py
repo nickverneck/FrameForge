@@ -40,7 +40,7 @@ class FalImageEditor(ImageEditor):
                 raise RuntimeError("fal-client is not installed. Add 'fal-client' to dependencies and install.") from e
 
             # Ensure SDK sees the key
-            if self.api_key and not os.getenv("FAL_KEY"):
+            if self.api_key and os.getenv("FAL_KEY") != self.api_key:
                 os.environ["FAL_KEY"] = self.api_key
 
             data_uris = []
