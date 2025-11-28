@@ -14,8 +14,6 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use serde_json::json;
-use std::fmt;
 
 /// Main application error type for API boundaries
 ///
