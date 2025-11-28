@@ -1,9 +1,53 @@
 [package]
-name = "server"
+name = "frameforge-server"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
+# Web framework
+axum = { version = "0.8", features = ["multipart", "macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace", "compression-br", "compression-gzip", "fs"] }
+
+# Async runtime
+tokio = { version = "1.48", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Configuration
+config = "0.14"
+dotenvy = "0.15"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "multipart", "stream"] }
+
+# Image processing
+image = "0.25"
+base64 = "0.22"
+
+# Multipart handling
+axum_typed_multipart = "0.12"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# AI providers
+genai = "0.5.0-alpha.2"  # Multi-provider AI client
+
+# Utilities
+mime = "0.3"
+bytes = "1.9"
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
 anyhow = "1.0"
 axum = { version = "0.6", features = ["json"] }
 image = "0.25"
