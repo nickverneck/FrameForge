@@ -7,6 +7,8 @@
 //! Request models define incoming API payloads including multipart form data.
 //! Response models define outgoing JSON structures for consistent API responses.
 
+/// Request payload models
+pub mod request;
+
 // Future model modules will be declared here:
-// pub mod request;
 // pub mod response;

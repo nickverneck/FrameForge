@@ -22,6 +22,9 @@
 
 // Module declarations - these modules will be implemented in subsequent tasks
 
+/// Common error types and helpers
+pub mod error;
+
 /// API route handlers for HTTP endpoints
 pub mod routes;
 
