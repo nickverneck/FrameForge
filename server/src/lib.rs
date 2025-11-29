@@ -22,6 +22,9 @@
 
 // Module declarations - these modules will be implemented in subsequent tasks
 
+/// Configuration management
+pub mod config;
+
 /// Common error types and helpers
 pub mod error;
 

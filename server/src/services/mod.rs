@@ -9,8 +9,10 @@
 //! provider selection. Services handle API communication, image processing,
 //! and error handling for their respective providers.
 
-// Future service modules will be declared here:
-// pub mod base;
-// pub mod factory;
-// pub mod google_nano_banana;
-// pub mod fal_editor;
+// Base trait and factory (Tasks 11-12)
+pub mod base;
+pub mod factory;
+
+// Provider implementations
+pub mod google_nano_banana; // Tasks 13-14, 21
+pub mod fal_editor; // Tasks 15-20, 22

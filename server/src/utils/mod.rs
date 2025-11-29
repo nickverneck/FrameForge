@@ -8,5 +8,5 @@
 //! Utilities are designed to be stateless and reusable across different parts
 //! of the application.
 
-// Future utility modules will be declared here:
-// pub mod image_utils;
+/// Image processing utilities for validation, conversion, and encoding
+pub mod image_utils;

@@ -11,6 +11,7 @@ tower-http = { version = "0.6", features = ["cors", "trace", "compression-br", "
 
 # Async runtime
 tokio = { version = "1.48", features = ["full"] }
+async-trait = "0.1"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -44,16 +45,8 @@ genai = "0.5.0-alpha.2"  # Multi-provider AI client
 # Utilities
 mime = "0.3"
 bytes = "1.9"
+futures = "0.3.31"
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
 http-body-util = "0.1"
-anyhow = "1.0"
-axum = { version = "0.6", features = ["json"] }
-image = "0.25"
-reqwest = { version = "0.11", features = ["json"] }
-rocket = { version = "0.5.1", features = ["json"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-thiserror = "1.0"
-tracing = "0.1"
