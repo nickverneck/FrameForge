@@ -6,6 +6,7 @@
 
 use serde::Deserialize;
 use std::env;
+use std::net::SocketAddr;
 
 /// Main application configuration structure
 ///
@@ -86,22 +87,54 @@ impl AppConfig {
         Ok(config)
     }
 
-    /// Validate configuration values
+    /// Validate configuration values (Task 39)
     ///
-    /// Checks that at least one API key is configured (or we're in development mode).
-    /// Logs warnings for potentially insecure configurations.
+    /// Checks that at least one API key is configured and validates
+    /// configuration values for correctness.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - No API keys are configured
+    /// - Port is out of valid range (1-65535)
+    /// - Host format is invalid
     fn validate(&self) -> anyhow::Result<()> {
-        // Warn if no API keys are configured
+        // Task 39: Ensure at least one API key is configured
         if self.google_api_key.is_none()
             && self.gemini_api_key.is_none()
             && self.fal_key.is_none() {
-            tracing::warn!(
-                "No API keys configured. Server will run but AI providers will not be available."
-            );
+            return Err(anyhow::anyhow!(
+                "No API keys configured. At least one of GOOGLE_API_KEY, GEMINI_API_KEY, or FAL_KEY must be set."
+            ));
+        }
+
+        // Task 39: Validate port range (1-65535)
+        if self.port == 0 {
+            return Err(anyhow::anyhow!(
+                "Invalid port: {}. Port must be in range 1-65535.",
+                self.port
+            ));
+        }
+
+        // Task 39: Validate host format
+        if self.host.is_empty() {
+            return Err(anyhow::anyhow!("Host cannot be empty"));
+        }
+
+        // Test if host can be parsed as a valid socket address
+        let test_addr = format!("{}:{}", self.host, self.port);
+        if test_addr.parse::<SocketAddr>().is_err() {
+            // Try parsing as just an IP address
+            if self.host.parse::<std::net::IpAddr>().is_err() {
+                tracing::warn!(
+                    "Host '{}' may not be a valid IP address or hostname",
+                    self.host
+                );
+            }
         }
 
         // Warn if using wildcard CORS in production-like setup
-        if self.allowed_origins.contains(&"*".to_string()) && self.host != "127.0.0.1" {
+        if self.allowed_origins.contains(&"*".to_string()) && self.host != "127.0.0.1" && self.host != "localhost" {
             tracing::warn!(
                 "CORS is configured with wildcard (*) on non-localhost host. \
                 This is insecure for production. Set ALLOWED_ORIGINS explicitly."

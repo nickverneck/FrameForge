@@ -7,7 +7,7 @@ edition = "2021"
 # Web framework
 axum = { version = "0.8", features = ["multipart", "macros"] }
 tower = "0.5"
-tower-http = { version = "0.6", features = ["cors", "trace", "compression-br", "compression-gzip", "fs"] }
+tower-http = { version = "0.6", features = ["cors", "trace", "compression-br", "compression-gzip", "fs", "timeout", "limit"] }
 
 # Async runtime
 tokio = { version = "1.48", features = ["full"] }

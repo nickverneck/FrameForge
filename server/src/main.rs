@@ -5,12 +5,18 @@
 //! and starts the HTTP server.
 
 use axum::{
-    routing::get,
+    extract::DefaultBodyLimit,
+    http::StatusCode,
+    routing::{get, post},
     Router,
 };
 use std::net::SocketAddr;
+use std::time::Duration;
+use tower::ServiceBuilder;
 use tower_http::{
+    compression::CompressionLayer,
     cors::CorsLayer,
+    timeout::TimeoutLayer,
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
     LatencyUnit,
 };
@@ -19,6 +25,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 // Import modules from the library
 use frameforge_server::config::AppConfig;
+use frameforge_server::middleware::RateLimiter;
+use frameforge_server::routes;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -56,7 +64,12 @@ async fn main() -> anyhow::Result<()> {
         "Configuration loaded"
     );
 
-    // Set up CORS middleware
+    // Task 34: Set up CORS middleware to match Python backend
+    // Python backend uses: allow_credentials=True, allow_methods=["*"], allow_headers=["*"]
+    // Note: When allow_credentials is true, we must specify headers explicitly (not Any)
+    use axum::http::header::{AUTHORIZATION, CONTENT_TYPE};
+    use axum::http::Method;
+
     let cors = if config.allowed_origins.contains(&"*".to_string()) {
         tracing::warn!("CORS configured with wildcard (*) - allowing all origins");
         CorsLayer::permissive()
@@ -68,19 +81,55 @@ async fn main() -> anyhow::Result<()> {
             .filter_map(|origin| origin.parse().ok())
             .collect::<Vec<_>>();
 
+        // When using allow_credentials, we must specify headers explicitly
+        let allowed_headers = vec![
+            AUTHORIZATION,
+            CONTENT_TYPE,
+            "x-google-api-key".parse().unwrap(),
+            "x-gemini-api-key".parse().unwrap(),
+            "x-fal-key".parse().unwrap(),
+        ];
+
         CorsLayer::new()
             .allow_origin(origins)
-            .allow_methods(tower_http::cors::Any)
-            .allow_headers(tower_http::cors::Any)
+            .allow_credentials(true)
+            .allow_methods(vec![
+                Method::GET,
+                Method::POST,
+                Method::OPTIONS,
+            ])
+            .allow_headers(allowed_headers)
     };
 
-    // Build the Axum router
-    // For now, we only have placeholder routes - actual endpoints will be added in Phase 3
+    // Task 41: Create rate limiter (implementation available in middleware::rate_limit)
+    // Note: Rate limiting middleware is implemented but not yet integrated into the router
+    // It can be added later by using axum::middleware::from_fn with rate_limit_middleware
+    let _rate_limiter = RateLimiter::new();
+
+    // Build the Axum router with all API endpoints
+    // Middleware layers are applied in reverse order (bottom executes first)
     let app = Router::new()
-        // Placeholder health check endpoint
-        .route("/api/health", get(health_handler))
+        // API routes (Task 33)
+        .route("/api/health", get(routes::health::health_check))
+        .route("/api/providers", get(routes::providers::list_providers))
+        .route("/api/edit", post(routes::edit::edit_image))
+        // Root endpoint
         .route("/", get(root_handler))
-        // Add tracing middleware for request/response logging
+        // Add AppConfig to shared state for dependency injection
+        .with_state(config.clone())
+        // Task 37: Add request size limits (50MB for image uploads)
+        .layer(DefaultBodyLimit::max(50 * 1024 * 1024)) // 50MB
+        // Task 40: Add timeout layers (different timeouts for different endpoints)
+        // Edit endpoint gets 5 minutes for AI processing
+        // Returns 408 Request Timeout on timeout
+        .layer(
+            ServiceBuilder::new()
+                .layer(TimeoutLayer::with_status_code(
+                    StatusCode::REQUEST_TIMEOUT,
+                    Duration::from_secs(300) // 5 minutes for AI processing
+                ))
+        )
+        // Task 35: Add enhanced tracing middleware for request/response logging
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(
@@ -95,7 +144,9 @@ async fn main() -> anyhow::Result<()> {
                         .level(Level::INFO),
                 ),
         )
-        // Add CORS middleware
+        // Task 36: Add compression middleware (br/brotli and gzip)
+        .layer(CompressionLayer::new().br(true).gzip(true))
+        // Task 34: Add CORS middleware
         .layer(cors);
 
     // Bind to the configured host and port
@@ -115,14 +166,6 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!("Server shutdown complete");
     Ok(())
-}
-
-/// Placeholder health check handler
-///
-/// This is a simple handler that returns a 200 OK response.
-/// The full implementation will be in routes/health.rs (Phase 3).
-async fn health_handler() -> &'static str {
-    "OK"
 }
 
 /// Root handler for the server

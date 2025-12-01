@@ -39,3 +39,6 @@ pub mod models;
 
 /// Utility functions and helpers
 pub mod utils;
+
+/// Custom middleware for the server
+pub mod middleware;

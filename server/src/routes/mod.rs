@@ -8,7 +8,11 @@
 //!
 //! Each route module implements request handling, validation, and response formatting.
 
-// Future route modules will be declared here:
-// pub mod health;
-// pub mod providers;
-// pub mod edit;
+/// Health check endpoint
+pub mod health;
+
+/// Providers listing endpoint
+pub mod providers;
+
+/// Image editing endpoint
+pub mod edit;

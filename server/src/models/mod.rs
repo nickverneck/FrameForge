@@ -10,5 +10,5 @@
 /// Request payload models
 pub mod request;
 
-// Future model modules will be declared here:
-// pub mod response;
+/// Response payload models
+pub mod response;
